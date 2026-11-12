@@ -6,6 +6,10 @@ services:
     container_name: optimum-exporter
     ports:
       - "9100:9100"
+    environment:
+      # Change this URL to the actual local API endpoint of your running Optimum Gateway
+      - GATEWAY_URL=http://optimum-gateway:8080/status   
+
     restart: unless-stopped
 
   # 2. Prometheus (to scrape your exporter)
