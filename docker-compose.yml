@@ -7,8 +7,8 @@ services:
     ports:
       - "9100:9100"
     environment:
-      # Change this URL to the actual local API endpoint of your running Optimum Gateway
-      - GATEWAY_URL=http://optimum-gateway:8080/status   
+      # Points to the REAL default Optimum Gateway telemetry endpoint
+      - GATEWAY_URL=http://optimum-gateway:48123/api/v1/self_info   
 
     restart: unless-stopped
 
