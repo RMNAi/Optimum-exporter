@@ -1,79 +1,24 @@
 {
-  "annotations": { "list": [] },
-  "editable": true,
-  "fiscalYearStartMonth": 0,
-  "graphTooltip": 0,
-  "id": null,
-  "links": [],
-  "liveNow": false,
-  "panels": [
-    {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": {
-        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 12 }] }, "unit": "s" },
-        "overrides": []
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "id": 1,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "pluginVersion": "10.0.0",
-      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "optimum_gateway_last_block_age_sec", "refId": "A" }],
-      "title": "Last Block Age (Real Mainnet)",
-      "type": "stat"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": {
-        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] } },
-        "overrides": []
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "id": 2,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "pluginVersion": "10.0.0",
-      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "optimum_gateway_peers_connected", "refId": "A" }],
-      "title": "Connected mump2p Peers",
-      "type": "stat"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": {
-        "defaults": { "color": { "mode": "thresholds" }, "mappings": [{ "options": { "0": { "text": "DEGRADED" }, "1": { "text": "HEALTHY" } }, "type": "value" }], "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] } },
-        "overrides": []
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
-      "id": 3,
-      "options": { "colorMode": "background", "graphMode": "none", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "pluginVersion": "10.0.0",
-      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "optimum_gateway_health_status", "refId": "A" }],
-      "title": "Gateway Health Status",
-      "type": "stat"
-    },
-    {
-      "datasource": { "type": "prometheus", "uid": "prometheus" },
-      "fieldConfig": {
-        "defaults": { "color": { "mode": "thresholds" }, "mappings": [], "thresholds": { "mode": "absolute", "steps": [{ "color": "purple", "value": null }] }, "unit": "s" },
-        "overrides": []
-      },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "id": 4,
-      "options": { "colorMode": "value", "graphMode": "area", "justifyMode": "auto", "orientation": "auto", "reduceOptions": { "calcs": ["lastNotNull"], "fields": "", "values": false }, "textMode": "auto" },
-      "pluginVersion": "10.0.0",
-      "targets": [{ "datasource": { "type": "prometheus", "uid": "prometheus" }, "expr": "optimum_gateway_uptime_seconds", "refId": "A" }],
-      "title": "Gateway Uptime",
-      "type": "stat"
-    }
-  ],
+  "title": "Optimum Gateway (hardened exporter)",
+  "uid": "optimum-hardened",
   "refresh": "10s",
+  "time": { "from": "now-30m", "to": "now" },
   "schemaVersion": 38,
-  "style": "dark",
-  "tags": ["optimum", "mainnet"],
-  "templating": { "list": [] },
-  "time": { "from": "now-15m", "to": "now" },
-  "timepicker": {},
-  "timezone": "",
-  "title": "Optimum Mainnet Production Dashboard",
-  "uid": "optimum-prod-01",
-  "version": 1,
-  "weekStart": ""
+  "panels": [
+    { "type": "stat", "title": "Gateway Up", "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "targets": [{ "expr": "optimum_gateway_up", "refId": "A" }],
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } }] }, "overrides": [] } },
+    { "type": "stat", "title": "Last Block Age", "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "targets": [{ "expr": "optimum_gateway_last_block_age_sec", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] } },
+    { "type": "stat", "title": "mump2p Peers", "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "targets": [{ "expr": "optimum_gateway_peers_connected", "refId": "A" }],
+      "fieldConfig": { "defaults": {}, "overrides": [] } },
+    { "type": "stat", "title": "Uptime", "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "targets": [{ "expr": "optimum_gateway_uptime_seconds", "refId": "A" }],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] } },
+    { "type": "timeseries", "title": "Telemetry fetch errors /s", "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
+      "targets": [{ "expr": "rate(optimum_gateway_api_errors_total[5m])", "refId": "A" }],
+      "fieldConfig": { "defaults": {}, "overrides": [] } }
+  ]
 }

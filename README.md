@@ -1,77 +1,79 @@
-# Optimum Gateway Prometheus Exporter
+# Optimum Gateway Observability
 
-[![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat-square&logo=go)](https://go.dev/)
-[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker)](https://www.docker.com/)
-[![License](https://img.shields.io/badge/License-MIT-green.svg?style=flat-square)](LICENSE)
+Lightweight observability for the [Optimum Gateway](https://getoptimum.xyz/) sidecar
+(mump2p / RLNC block propagation). This repo offers three ways to monitor a gateway,
+from "no custom code" to a small hardened exporter.
 
-A lightweight, production-ready Prometheus exporter for the [Optimum Gateway](https://getoptimum.xyz/). 
+> **Scope & honesty:** these tools provide **liveness / stall detection** (is the gateway
+> alive, meshed, and receiving blocks?). They do **NOT** measure arrival-latency deltas or
+> prove ROI vs gossipsub — `last_block_age_sec` is a freshness gauge, not a latency
+> measurement. For ROI, use the Optimum Console per-validator methodology or your CL
+> client's own block-arrival timing.
 
-This tool exposes **real-time, node-specific `mump2p` network metrics** by directly querying the Optimum Gateway's native `/health` and `/api/v1/self_info` telemetry endpoints. It allows Ethereum node operators and staking providers to monitor actual block propagation freshness, peer connectivity, and gateway health within their existing Grafana/Prometheus observability stacks.
+## Which path should I use?
 
-## 🚀 Why Use This?
+| Path | What it is | When to choose |
+|---|---|---|
+| **C — Native stack (recommended)** | blackbox_exporter + json_exporter + the gateway's own /metrics | Production. Zero custom Go to audit/maintain. |
+| **B — Hardened exporter** | Small Go exporter exposing /health + /self_info as gauges | You want one binary + the bundled dashboard. |
+| **A — Demo** | docker-compose.demo.yml (exporter+Prometheus+Grafana) | Learning / local evaluation only. |
 
-While the [Optimum Hub](https://hub.getoptimum.xyz/) provides excellent *network-wide* aggregate statistics, node operators need *local, node-specific* observability to:
-- **Verify ROI**: Prove that mump2p is actually reducing block arrival latency on your specific hardware (tracking real `last_block_age_sec`).
-- **Set Alerts**: Trigger PagerDuty/Slack alerts if `optimum_gateway_health_status` drops to 0 or peer connections plummet.
-- **Troubleshoot**: Correlate missed attestations or MEV leaks with real-time local network propagation spikes or gateway restarts.
+**First, check what you already have.** The gateway ships native Prometheus metrics:
 
-## ⚡ Quick Start (Docker Compose)
+    curl -s http://127.0.0.1:48123/metrics | head -50
+    curl -s http://127.0.0.1:48123/health | jq
 
-The fastest way to get started is using the provided `docker-compose.yml`, which spins up the Exporter, Prometheus, and Grafana in one command.
+If native /metrics covers your needs, just add a scrape job for :48123 and stop.
+Keep the telemetry listener bound to 127.0.0.1 (it is unauthenticated).
 
-1. Clone the repository:
-   git clone https://github.com/RMNAi/optimum-exporter.git
-   cd optimum-exporter
+## Path C — native stack (recommended)
 
-2. Start the stack:
-   docker-compose up -d
-   *(Note: Ensure your `GATEWAY_URL` environment variable in `docker-compose.yml` points to your running Optimum Gateway's telemetry port, e.g., `http://host.docker.internal:48123`)*
+    cd deploy/native
+    docker compose up -d
 
-3. Access the services:
-   - Exporter Metrics: http://localhost:9100/metrics
-   - Prometheus: http://localhost:9090
-   - Grafana: http://localhost:3000 (Default credentials: admin / admin)
+Scrape from your EXISTING Prometheus in production; import deploy/native/dashboard.json
+into your EXISTING Grafana. Alerts: deploy/native/alerts.yml (probe_success based, so a
+dead gateway can never look "healthy").
 
-## 📊 Grafana Dashboard
+## Path B — hardened exporter
 
-A professional, pre-configured Grafana dashboard is included to visualize your **real mainnet metrics** immediately.
+    docker compose up -d          # exporter only, bound to 127.0.0.1:9188
 
-1. Log into Grafana (http://localhost:3000).
-2. Add Prometheus as a Data Source:
-   - URL: `http://prometheus:9090`
-   - Click **Save & Test**.
-3. Import the dashboard:
-   - Go to **Dashboards** -> **New** -> **Import**.
-   - Upload the `dashboard.json` file from this repository.
-   - Select your Prometheus data source and click **Import**.
+Point GATEWAY_URL at your gateway. Scrape :9188 from your existing Prometheus; import
+dashboard.json. Alerts: alerts.yml (uses optimum_gateway_up, which goes to 0 on failure).
 
-![Grafana Dashboard Preview](./dashboard-screenshot.png)
+Run only the exporter on a validator host — never the demo Prometheus/Grafana.
 
-## 📈 Exposed Metrics
+## Path A — demo (NOT for production)
 
-| Metric Name | Type | Description |
-| :--- | :--- | :--- |
-| `optimum_gateway_last_block_age_sec` | Gauge | **Real** seconds since the last block arrived on the stream (from `/health`). |
-| `optimum_gateway_peers_connected` | Gauge | Current number of active mump2p peers (from `/api/v1/self_info`). |
-| `optimum_gateway_health_status` | Gauge | `1` if the gateway reports "healthy", `0` otherwise. |
-| `optimum_gateway_uptime_seconds` | Gauge | Total uptime of the gateway process in seconds. |
-| `optimum_gateway_api_errors_total` | Counter | Total failed HTTP requests (useful for alerting on telemetry dropouts). |
+    docker compose -f docker-compose.demo.yml up -d
 
-## 🛠️ Local Development (Without Docker)
+Ships Grafana with admin/admin and is for local evaluation only.
 
-If you prefer to run the exporter natively:
+## Metrics (Path B)
 
-1. Download dependencies:
-   go mod download
+| Metric | Type | Meaning |
+|---|---|---|
+| optimum_gateway_up | Gauge | 1 if last scrape succeeded, else 0 (trustworthy down-alert) |
+| optimum_gateway_last_block_age_sec | Gauge | Seconds since last block (stall detector) |
+| optimum_gateway_peers_connected | Gauge | mump2p mesh peers |
+| optimum_gateway_health_status | Gauge | 1 healthy / 0 otherwise (cleared on fetch failure) |
+| optimum_gateway_uptime_seconds | Gauge | Process uptime (resets => restart) |
+| optimum_gateway_api_errors_total | Counter | Failed telemetry fetches |
 
-2. Run the exporter (ensure GATEWAY_URL is set to your local gateway):
-   export GATEWAY_URL="http://localhost:48123/api/v1/self_info"
-   go run main.go
+## Security posture
 
-## 🤝 Contributing
+Read-only GETs to the local gateway; never touches validator keys; no outbound calls
+beyond the gateway. Exporter runs as non-root. Bind metrics to loopback / your monitoring
+VLAN. Pin image digests and review the code before fleet rollout; canary on one host first.
 
-Contributions are welcome! If you have ideas for additional metrics (e.g., scraping the gateway's native `/metrics` for RLNC shard recovery rates), please open an Issue or submit a Pull Request.
+## Development
 
-## 📜 License
+    go test ./...
+    go vet ./...
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+CI runs vet + tests + build + docker build on every push/PR.
+
+## License
+
+MIT. See LICENSE.

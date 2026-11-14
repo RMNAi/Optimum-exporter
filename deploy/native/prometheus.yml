@@ -1,0 +1,47 @@
+global:
+  scrape_interval: 10s
+rule_files:
+  - alerts.yml
+scrape_configs:
+  - job_name: optimum-health-blackbox
+    metrics_path: /probe
+    params: { module: [http_2xx] }
+    static_configs:
+      - targets: ["http://host.docker.internal:48123/health"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
+
+  - job_name: optimum-health-json
+    metrics_path: /probe
+    params: { module: [optimum_health] }
+    static_configs:
+      - targets: ["http://host.docker.internal:48123/health"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: json-exporter:7979
+
+  - job_name: optimum-selfinfo-json
+    metrics_path: /probe
+    params: { module: [optimum_selfinfo] }
+    static_configs:
+      - targets: ["http://host.docker.internal:48123/api/v1/self_info"]
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: json-exporter:7979
+
+  - job_name: optimum-gateway-native
+    static_configs:
+      - targets: ["host.docker.internal:48123"]

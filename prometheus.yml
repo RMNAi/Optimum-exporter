@@ -1,7 +1,12 @@
 global:
-  scrape_interval: 5s # Scrape metrics every 5 seconds
-
+  scrape_interval: 10s
+rule_files:
+  - alerts.yml
 scrape_configs:
-  - job_name: 'optimum-exporter'
+  - job_name: optimum-exporter
     static_configs:
-      - targets: ['optimum-exporter:9100']
+      - targets: ["optimum-exporter:9188"]
+  # Optional: also scrape the gateway's native metrics directly
+  # - job_name: optimum-gateway-native
+  #   static_configs:
+  #     - targets: ["host.docker.internal:48123"]

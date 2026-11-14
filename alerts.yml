@@ -1,0 +1,20 @@
+groups:
+  - name: optimum
+    rules:
+      - alert: OptimumGatewayDown
+        expr: optimum_gateway_up == 0
+        for: 2m
+        labels: { severity: critical }
+        annotations:
+          summary: "Optimum gateway telemetry unreachable"
+      - alert: OptimumBlockFlowStalled
+        expr: optimum_gateway_last_block_age_sec > 60
+        for: 2m
+        labels: { severity: warning }
+      - alert: OptimumMeshPeersLow
+        expr: optimum_gateway_peers_connected < 3
+        for: 5m
+        labels: { severity: warning }
+      - alert: OptimumGatewayRestarted
+        expr: resets(optimum_gateway_uptime_seconds[1h]) > 0
+        labels: { severity: info }

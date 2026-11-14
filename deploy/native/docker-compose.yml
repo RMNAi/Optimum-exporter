@@ -1,0 +1,30 @@
+services:
+  blackbox:
+    image: prom/blackbox-exporter:latest
+    volumes:
+      - ./blackbox.yml:/etc/blackbox_exporter/config.yml
+    command: ["--config.file=/etc/blackbox_exporter/config.yml"]
+    restart: unless-stopped
+
+  json-exporter:
+    image: prometheuscommunity/json-exporter:latest
+    volumes:
+      - ./json_exporter.yml:/etc/json_exporter/config.yml
+    command: ["--config.file=/etc/json_exporter/config.yml"]
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["127.0.0.1:9090:9090"]
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./alerts.yml:/etc/prometheus/alerts.yml
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["127.0.0.1:3000:3000"]
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin   # DEMO ONLY — change for real use
+    restart: unless-stopped
