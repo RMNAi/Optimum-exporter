@@ -5,133 +5,130 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"math/rand"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// 1. Define the Prometheus Metrics
 var (
 	peersConnected = prometheus.NewGauge(prometheus.GaugeOpts{
 		Name: "optimum_gateway_peers_connected",
-		Help: "Current number of connected mump2p peers.",
+		Help: "mump2p peers from /api/v1/self_info.",
 	})
-	blockArrivalMs = prometheus.NewGauge(prometheus.GaugeOpts{
-		Name: "optimum_gateway_block_arrival_ms",
-		Help: "Time in milliseconds it took for the latest block to arrive via mump2p.",
+	lastBlockAgeSec = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "optimum_gateway_last_block_age_sec",
+		Help: "Seconds since last block arrived (from /health).",
 	})
-	blocksReceivedTotal = prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "optimum_gateway_blocks_received_total",
-		Help: "Total number of blocks received via the mump2p network.",
+	gatewayUptime = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "optimum_gateway_uptime_seconds",
+		Help: "Gateway uptime in seconds (from /health).",
+	})
+	healthStatus = prometheus.NewGauge(prometheus.GaugeOpts{
+		Name: "optimum_gateway_health_status",
+		Help: "1 if overall status is healthy, 0 otherwise.",
 	})
 	apiErrorsTotal = prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "optimum_gateway_api_errors_total",
-		Help: "Total number of failed API requests to the Optimum Gateway.",
+		Help: "Failed HTTP requests to the Optimum Gateway.",
 	})
 )
 
 func init() {
-	prometheus.MustRegister(peersConnected)
-	prometheus.MustRegister(blockArrivalMs)
-	prometheus.MustRegister(blocksReceivedTotal)
-	prometheus.MustRegister(apiErrorsTotal)
+	prometheus.MustRegister(peersConnected, lastBlockAgeSec, gatewayUptime, healthStatus, apiErrorsTotal)
 }
 
-// 2. Define the expected JSON structure from the REAL Optimum Gateway API
-// Based on official docs: curl -s http://localhost:48123/api/v1/self_info | jq '.mump2p.total_peers'
-type GatewayResponse struct {
+// Exact structure from your real /health JSON
+type HealthInfo struct {
+	Status        string `json:"status"`
+	UptimeSeconds int    `json:"uptime_seconds"`
+	Checks        struct {
+		LastBlockAgeSec struct {
+			Value float64 `json:"value"`
+		} `json:"last_block_age_sec"`
+		Mump2pPeers struct {
+			Value int `json:"value"`
+		} `json:"mump2p_peers"`
+	} `json:"checks"`
+}
+
+// Exact structure from your real /api/v1/self_info JSON
+type SelfInfo struct {
 	PeerID  string `json:"peer_id"`
 	Chain   string `json:"chain"`
 	Version string `json:"version"`
 	Mump2p  struct {
 		TotalPeers int `json:"total_peers"`
 	} `json:"mump2p"`
-	Libp2p struct {
-		Multiaddrs []string `json:"multiaddrs"`
-	} `json:"libp2p"`
 }
 
-// 3. The Real HTTP Fetcher with Graceful Fallback
-func fetchGatewayData(gatewayURL string) {
-	// Try to fetch real data from the Optimum Gateway
-	resp, err := http.Get(gatewayURL)
+func fetchJSON(url string, target interface{}) error {
+	resp, err := http.Get(url)
 	if err != nil {
-		log.Printf("⚠️  Gateway API unavailable, using simulated data for demo: %v", err)
-		useSimulatedData()
-		apiErrorsTotal.Inc()
-		return
+		return err
 	}
 	defer resp.Body.Close()
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Printf("⚠️  Error reading response, using simulated data: %v", err)
-		useSimulatedData()
-		apiErrorsTotal.Inc()
-		return
+		return err
 	}
-
-	var data GatewayResponse
-	if err := json.Unmarshal(body, &data); err != nil {
-		log.Printf("⚠️  Error parsing JSON, using simulated data: %v", err)
-		useSimulatedData()
-		apiErrorsTotal.Inc()
-		return
-	}
-
-	// ✅ Success! Update Prometheus metrics with REAL gateway data
-	peersConnected.Set(float64(data.Mump2p.TotalPeers))
-	
-	// Note: The /api/v1/self_info endpoint focuses on peer topology. 
-	// For block arrival latency, operators typically scrape the gateway's native /metrics endpoint.
-	// We keep the simulated fallback here so the dashboard always looks great during demos/testing.
-	arrivalTime := rand.Float64()*100 + 150.0
-	blockArrivalMs.Set(arrivalTime)
-	blocksReceivedTotal.Add(1)
-
-	fmt.Printf("✅ Real data fetched: PeerID=%s, Chain=%s, Mump2pPeers=%d\n", 
-		data.PeerID, data.Chain, data.Mump2p.TotalPeers)
+	return json.Unmarshal(body, target)
 }
 
-// 4. Simulated Data Fallback
-func useSimulatedData() {
-	peers := rand.Intn(50) + 10
-	arrivalTime := rand.Float64()*100 + 150.0
-	
-	peersConnected.Set(float64(peers))
-	blockArrivalMs.Set(arrivalTime)
-	blocksReceivedTotal.Add(1) // Increment by 1 for simulated mode
-}
+func poll(baseURL string) {
+	// 1. Fetch Topology
+	var si SelfInfo
+	if err := fetchJSON(baseURL+"/api/v1/self_info", &si); err != nil {
+		log.Printf("⚠️ self_info error: %v", err)
+		apiErrorsTotal.Inc()
+	} else {
+		peersConnected.Set(float64(si.Mump2p.TotalPeers))
+		fmt.Printf("✅ Topology: chain=%s peers=%d\n", si.Chain, si.Mump2p.TotalPeers)
+	}
 
-func startMetricsUpdater(gatewayURL string) {
-	go func() {
-		for {
-			fetchGatewayData(gatewayURL)
-			time.Sleep(5 * time.Second)
+	// 2. Fetch Real Health & Block Age
+	var hi HealthInfo
+	if err := fetchJSON(baseURL+"/health", &hi); err != nil {
+		log.Printf("⚠️ health error: %v", err)
+		apiErrorsTotal.Inc()
+	} else {
+		lastBlockAgeSec.Set(hi.Checks.LastBlockAgeSec.Value)
+		gatewayUptime.Set(float64(hi.UptimeSeconds))
+		
+		if hi.Status == "healthy" {
+			healthStatus.Set(1)
+		} else {
+			healthStatus.Set(0)
 		}
-	}()
+		fmt.Printf("✅ Health: status=%s block_age=%.1fs uptime=%ds\n", 
+			hi.Status, hi.Checks.LastBlockAgeSec.Value, hi.UptimeSeconds)
+	}
 }
 
 func main() {
 	gatewayURL := os.Getenv("GATEWAY_URL")
 	if gatewayURL == "" {
-		gatewayURL = "http://localhost:8080/status"
+		gatewayURL = "http://host.docker.internal:48123/api/v1/self_info"
+	}
+	
+	// Automatically strip the path to get the base URL for the /health endpoint
+	baseURL := gatewayURL
+	if idx := strings.Index(baseURL, "/api/"); idx != -1 {
+		baseURL = baseURL[:idx]
 	}
 
-	fmt.Printf("🚀 Starting Optimum Gateway Prometheus Exporter on :9100\n")
-	fmt.Printf(" Polling Optimum Gateway at: %s\n", gatewayURL)
-	fmt.Printf(" If gateway is unavailable, will use simulated data for testing.\n")
-	
-	startMetricsUpdater(gatewayURL)
+	fmt.Printf("🚀 Optimum Exporter (Production Mode) starting.\nBase URL: %s\n", baseURL)
+
+	go func() {
+		for {
+			poll(baseURL)
+			time.Sleep(10 * time.Second)
+		}
+	}()
 
 	http.Handle("/metrics", promhttp.Handler())
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`<html><head><title>Optimum Exporter</title></head><body><h1>Optimum Gateway Exporter</h1><p><a href="/metrics">View Metrics</a></p></body></html>`))
-	})
-
 	log.Fatal(http.ListenAndServe(":9100", nil))
 }
