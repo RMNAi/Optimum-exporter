@@ -32,4 +32,4 @@ go.work.sum
 # .idea/
 # .vscode/
 
-optimum-exporter
+optimum-exporter.env

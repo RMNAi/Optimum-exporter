@@ -76,6 +76,17 @@ VLAN. Pin image digests and review the code before fleet rollout; canary on one 
 
 CI runs vet + tests + build + docker build on every push/PR.
 
+## Production Grafana (external Prometheus)
+
+    cp .env.example .env   # set PROMETHEUS_URL + a real admin password; keep .env out of git
+    docker compose -f docker-compose.grafana.yml up -d
+
+Runs ONLY Grafana against your existing Prometheus (URL via env). Both dashboards
+auto-provision into folder "Optimum". Datasource is managed-as-code (editable:false);
+set PROMETHEUS_IS_DEFAULT=true only if this Grafana has no other default. For an
+existing host Grafana, copy grafana/provisioning-production into /etc/grafana/provisioning
+and set the same env vars. Put Grafana behind TLS; never expose :3000 publicly.
+
 ## Security
 
 See SECURITY.md. Read-only observer; no validator keys. Keep telemetry and
