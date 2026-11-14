@@ -31,9 +31,10 @@ Keep the telemetry listener bound to 127.0.0.1 (it is unauthenticated).
     cd deploy/native
     docker compose up -d
 
-Scrape from your EXISTING Prometheus in production; import deploy/native/dashboard.json
-into your EXISTING Grafana. Alerts: deploy/native/alerts.yml (probe_success based, so a
-dead gateway can never look "healthy").
+Grafana auto-provisions the Prometheus datasource and the dashboard (folder
+"Optimum") — open http://localhost:3000 and it is already loaded. In production,
+scrape from your EXISTING Prometheus and import deploy/native/dashboard.json into
+your EXISTING Grafana. Alerts: deploy/native/alerts.yml (probe_success based).
 
 ## Path B — hardened exporter
 
@@ -48,7 +49,8 @@ Run only the exporter on a validator host — never the demo Prometheus/Grafana.
 
     docker compose -f docker-compose.demo.yml up -d
 
-Ships Grafana with admin/admin and is for local evaluation only.
+Grafana auto-loads the datasource + dashboard (folder "Optimum"); no manual
+import. Ships admin/admin and is for local evaluation only.
 
 ## Metrics (Path B)
 
@@ -73,6 +75,11 @@ VLAN. Pin image digests and review the code before fleet rollout; canary on one 
     go vet ./...
 
 CI runs vet + tests + build + docker build on every push/PR.
+
+## Security
+
+See SECURITY.md. Read-only observer; no validator keys. Keep telemetry and
+metrics bound to loopback; never run the demo stack on a validator host.
 
 ## License
 
