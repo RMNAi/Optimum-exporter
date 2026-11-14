@@ -3,7 +3,9 @@ services:
   grafana:
     image: grafana/grafana:latest   # pin a digest for real production
     ports:
-      - "127.0.0.1:3000:3000"       # put behind your TLS reverse proxy
+      - "127.0.0.1:3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - PROMETHEUS_URL=${PROMETHEUS_URL}
       - PROMETHEUS_IS_DEFAULT=${PROMETHEUS_IS_DEFAULT:-false}
