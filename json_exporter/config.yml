@@ -1,0 +1,12 @@
+modules:
+  optimum_health:
+    metrics:
+      - name: optimum_last_block_age_seconds
+        path: '{.checks.last_block_age_sec.value}'
+        help: Seconds since last block (from /health).
+      - name: optimum_mump2p_peers
+        path: '{.checks.mump2p_peers.value}'
+        help: mump2p mesh peers (from /health).
+      - name: optimum_uptime_seconds
+        path: '{.uptime_seconds}'
+        help: Gateway process uptime seconds (from /health).

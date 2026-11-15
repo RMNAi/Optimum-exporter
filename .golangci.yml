@@ -1,2 +1,0 @@
-linters:
-  enable: [govet, errcheck, staticcheck, ineffassign, unused]

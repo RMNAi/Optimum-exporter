@@ -2,19 +2,18 @@ groups:
   - name: optimum
     rules:
       - alert: OptimumGatewayDown
-        expr: optimum_gateway_up == 0
+        expr: probe_success{job="optimum-health-blackbox"} == 0
         for: 2m
         labels: { severity: critical }
-        annotations:
-          summary: "Optimum gateway telemetry unreachable"
+        annotations: { summary: "Optimum gateway /health unreachable or degraded" }
       - alert: OptimumBlockFlowStalled
-        expr: optimum_gateway_last_block_age_sec > 60
+        expr: optimum_last_block_age_seconds > 60
         for: 2m
         labels: { severity: warning }
       - alert: OptimumMeshPeersLow
-        expr: optimum_gateway_peers_connected < 3
+        expr: optimum_mump2p_peers < 3
         for: 5m
         labels: { severity: warning }
       - alert: OptimumGatewayRestarted
-        expr: resets(optimum_gateway_uptime_seconds[1h]) > 0
+        expr: resets(optimum_uptime_seconds[1h]) > 0
         labels: { severity: info }

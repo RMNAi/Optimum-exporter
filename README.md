@@ -1,96 +1,93 @@
-# Optimum Gateway Observability
+# Optimum Gateway Observability (native)
+![dashboard](docs/dashboard-up.png)
 
-Lightweight observability for the [Optimum Gateway](https://getoptimum.xyz/) sidecar
-(mump2p / RLNC block propagation). This repo offers three ways to monitor a gateway,
-from "no custom code" to a small hardened exporter.
+Observability pack for the Optimum Gateway sidecar (mump2p / RLNC block
+propagation), built entirely on the gateway's OWN telemetry plus two
+off-the-shelf exporters. No custom code to audit or maintain.
 
-> **Scope & honesty:** these tools provide **liveness / stall detection** (is the gateway
-> alive, meshed, and receiving blocks?). They do **NOT** measure arrival-latency deltas or
-> prove ROI vs gossipsub — `last_block_age_sec` is a freshness gauge, not a latency
-> measurement. For ROI, use the Optimum Console per-validator methodology or your CL
-> client's own block-arrival timing.
+## Scope (read this first)
 
-## Which path should I use?
+This pack provides LIVENESS and STALL detection: is the gateway alive,
+meshed, and receiving blocks? It does NOT measure arrival-latency deltas
+and does NOT prove ROI vs gossipsub. `last_block_age_sec` is a freshness
+gauge, not a latency measurement. For per-validator performance / ROI
+(attestation accuracy, block inclusion, acceleration recommendations) use
+the Optimum Console. This pack complements the Console; it does not replace it.
 
-| Path | What it is | When to choose |
-|---|---|---|
-| **C — Native stack (recommended)** | blackbox_exporter + json_exporter + the gateway's own /metrics | Production. Zero custom Go to audit/maintain. |
-| **B — Hardened exporter** | Small Go exporter exposing /health + /self_info as gauges | You want one binary + the bundled dashboard. |
-| **A — Demo** | docker-compose.demo.yml (exporter+Prometheus+Grafana) | Learning / local evaluation only. |
+## Why native
 
-**First, check what you already have.** The gateway ships native Prometheus metrics:
+The gateway already exposes:
+  GET /metrics   Prometheus metrics (telemetry_enable: true)
+  GET /health    structured health, 200 healthy / 503 degraded
+So we scrape /metrics directly, probe /health with blackbox_exporter
+(probe_success is the trustworthy up/health signal), and lift the numeric
+/health fields with json_exporter. Zero custom exporter code.
 
-    curl -s http://127.0.0.1:48123/metrics | head -50
-    curl -s http://127.0.0.1:48123/health | jq
+Sources -> signals:
+  blackbox_exporter  /health   -> probe_success, probe_duration_seconds
+  json_exporter      /health   -> optimum_last_block_age_seconds,
+                                  optimum_mump2p_peers, optimum_uptime_seconds
+  gateway            /metrics  -> the gateway's own operational metrics
 
-If native /metrics covers your needs, just add a scrape job for :48123 and stop.
-Keep the telemetry listener bound to 127.0.0.1 (it is unauthenticated).
+## Quickstart (evaluation)
 
-## Path C — native stack (recommended)
+Requires a running Optimum Gateway with telemetry on port 48123.
 
-    cd deploy/native
     docker compose up -d
 
-Grafana auto-provisions the Prometheus datasource and the dashboard (folder
-"Optimum") — open http://localhost:3000 and it is already loaded. In production,
-scrape from your EXISTING Prometheus and import deploy/native/dashboard.json into
-your EXISTING Grafana. Alerts: deploy/native/alerts.yml (probe_success based).
+Open Grafana (http://localhost:3000, admin/admin). The datasource and the
+dashboard are auto-provisioned into the "Optimum" folder. Prometheus is at
+http://localhost:9090. All ports bind to loopback; this stack is for local
+evaluation only — do not run it on a validator host.
 
-## Path B — hardened exporter
+## Production
 
-    docker compose up -d          # exporter only, bound to 127.0.0.1:9188
+Add the three scrape jobs from prometheus/prometheus.yml to your EXISTING
+Prometheus, load prometheus/alerts.yml as rule_files, and import
+dashboards/optimum.json into your EXISTING Grafana. Or run only Grafana
+against your Prometheus:
 
-Point GATEWAY_URL at your gateway. Scrape :9188 from your existing Prometheus; import
-dashboard.json. Alerts: alerts.yml (uses optimum_gateway_up, which goes to 0 on failure).
-
-Run only the exporter on a validator host — never the demo Prometheus/Grafana.
-
-## Path A — demo (NOT for production)
-
-    docker compose -f docker-compose.demo.yml up -d
-
-Grafana auto-loads the datasource + dashboard (folder "Optimum"); no manual
-import. Ships admin/admin and is for local evaluation only.
-
-## Metrics (Path B)
-
-| Metric | Type | Meaning |
-|---|---|---|
-| optimum_gateway_up | Gauge | 1 if last scrape succeeded, else 0 (trustworthy down-alert) |
-| optimum_gateway_last_block_age_sec | Gauge | Seconds since last block (stall detector) |
-| optimum_gateway_peers_connected | Gauge | mump2p mesh peers |
-| optimum_gateway_health_status | Gauge | 1 healthy / 0 otherwise (cleared on fetch failure) |
-| optimum_gateway_uptime_seconds | Gauge | Process uptime (resets => restart) |
-| optimum_gateway_api_errors_total | Counter | Failed telemetry fetches |
-
-## Security posture
-
-Read-only GETs to the local gateway; never touches validator keys; no outbound calls
-beyond the gateway. Exporter runs as non-root. Bind metrics to loopback / your monitoring
-VLAN. Pin image digests and review the code before fleet rollout; canary on one host first.
-
-## Development
-
-    go test ./...
-    go vet ./...
-
-CI runs vet + tests + build + docker build on every push/PR.
-
-## Production Grafana (external Prometheus)
-
-    cp .env.example .env   # set PROMETHEUS_URL + a real admin password; keep .env out of git
+    cp .env.example .env    # set PROMETHEUS_URL + a real admin password
     docker compose -f docker-compose.grafana.yml up -d
 
-Runs ONLY Grafana against your existing Prometheus (URL via env). Both dashboards
-auto-provision into folder "Optimum". Datasource is managed-as-code (editable:false);
-set PROMETHEUS_IS_DEFAULT=true only if this Grafana has no other default. For an
-existing host Grafana, copy grafana/provisioning-production into /etc/grafana/provisioning
-and set the same env vars. Put Grafana behind TLS; never expose :3000 publicly.
+Keep .env out of git. Put Grafana behind TLS; never expose :3000 publicly.
+
+## Alerts
+
+  OptimumGatewayDown      probe_success == 0            for 2m   critical
+  OptimumBlockFlowStalled last_block_age_seconds > 60   for 2m   warning
+  OptimumMeshPeersLow     mump2p_peers < 3              for 5m   warning
+  OptimumGatewayRestarted resets(uptime_seconds[1h])>0           info
+
+When the gateway is down, json_exporter exposes no series, so freshness
+panels render "—" (unknown) rather than a stale or zero value.
 
 ## Security
 
-See SECURITY.md. Read-only observer; no validator keys. Keep telemetry and
-metrics bound to loopback; never run the demo stack on a validator host.
+Read-only GETs to the local gateway only. No validator keys, no outbound
+calls beyond the gateway and your Prometheus. Keep the gateway telemetry
+listener and all metrics ports bound to loopback / a monitoring VLAN.
+Pin image digests and canary on one host before fleet rollout. See SECURITY.md.
+
+## Repository layout
+
+  prometheus/        scrape jobs + alert rules
+  blackbox/          http_2xx module for /health
+  json_exporter/     /health field extraction
+  grafana/           datasource + dashboard provisioning
+  dashboards/        the Grafana dashboard
+  docker-compose.yml           evaluation stack
+  docker-compose.grafana.yml   production Grafana vs external Prometheus
+
+## Validation
+
+    docker compose config -q
+    docker run --rm -v "$PWD/prometheus:/p" prom/prometheus:v2.53.0 \
+      promtool check config /p/prometheus.yml
+    docker run --rm -v "$PWD/prometheus:/p" prom/prometheus:v2.53.0 \
+      promtool check rules /p/alerts.yml
+
+CI runs these on every push/PR.
 
 ## License
 
