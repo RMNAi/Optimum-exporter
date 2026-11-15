@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/prometheus/client_golang/prometheus/testutil"
+	"math"
 )
 
 func TestPollSuccess(t *testing.T) {
@@ -59,5 +60,23 @@ func TestFetchJSONRejectsNon200(t *testing.T) {
 	var out selfInfo
 	if err := fetchJSON(srv.URL, &out); err == nil {
 		t.Fatal("expected error on non-200")
+	}
+}
+
+func TestPollFailureSetsFreshnessNaN(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(503)
+	}))
+	defer srv.Close()
+
+	poll(srv.URL)
+	if !math.IsNaN(testutil.ToFloat64(peersConnected)) {
+		t.Fatal("expected peers=NaN on failure")
+	}
+	if !math.IsNaN(testutil.ToFloat64(lastBlockAgeSec)) {
+		t.Fatal("expected block age=NaN on failure")
+	}
+	if !math.IsNaN(testutil.ToFloat64(gatewayUptime)) {
+		t.Fatal("expected uptime=NaN on failure")
 	}
 }

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"math"
 
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -85,6 +86,7 @@ func poll(base string) {
 	var si selfInfo
 	if err := fetchJSON(base+"/api/v1/self_info", &si); err != nil {
 		apiErrorsTotal.Inc()
+		peersConnected.Set(math.NaN()) // unknown, not a stale value
 		ok = false
 		if debug {
 			log.Printf("self_info error: %v", err)
@@ -96,7 +98,9 @@ func poll(base string) {
 	var hi healthInfo
 	if err := fetchJSON(base+"/health", &hi); err != nil {
 		apiErrorsTotal.Inc()
-		healthStatus.Set(0) // never leave a stale "healthy"
+		healthStatus.Set(0)            // never leave a stale "healthy"
+		lastBlockAgeSec.Set(math.NaN()) // unknown while unreachable
+		gatewayUptime.Set(math.NaN())
 		ok = false
 		if debug {
 			log.Printf("health error: %v", err)
@@ -116,7 +120,7 @@ func poll(base string) {
 		up = 1
 	}
 	gatewayUp.Set(float64(up))
-	if up != lastUp { // log only on state change, not every poll
+	if up != lastUp {
 		if up == 1 {
 			log.Printf("gateway telemetry UP")
 		} else {

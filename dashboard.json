@@ -2,171 +2,62 @@
   "title": "Optimum Gateway (hardened exporter)",
   "uid": "optimum-hardened",
   "refresh": "10s",
-  "time": {
-    "from": "now-30m",
-    "to": "now"
-  },
+  "time": { "from": "now-30m", "to": "now" },
   "schemaVersion": 38,
   "panels": [
     {
-      "type": "stat",
-      "title": "Gateway Up",
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 0,
-        "y": 0
-      },
-      "targets": [
-        {
-          "expr": "optimum_gateway_up",
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "text": "DOWN",
-                  "color": "red"
-                },
-                "1": {
-                  "text": "UP",
-                  "color": "green"
-                }
-              }
-            }
-          ]
-        },
-        "overrides": []
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      }
+      "type": "stat", "title": "Gateway Up",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "optimum_gateway_up", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }],
+      "options": { "colorMode": "value", "graphMode": "none", "reduceOptions": { "calcs": ["last"] }, "textMode": "auto" },
+      "fieldConfig": { "defaults": { "noValue": "—", "mappings": [ { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "UP", "color": "green" } } } ] }, "overrides": [] }
     },
     {
-      "type": "stat",
-      "title": "Last Block Age",
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 6,
-        "y": 0
-      },
-      "targets": [
-        {
-          "expr": "optimum_gateway_last_block_age_sec",
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      }
+      "type": "stat", "title": "Last Block Age",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "optimum_gateway_last_block_age_sec", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }],
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["last"] }, "textMode": "auto" },
+      "fieldConfig": { "defaults": { "unit": "s", "noValue": "—", "color": { "mode": "thresholds" },
+        "mappings": [
+          { "type": "special", "options": { "match": "nan", "result": { "text": "—", "color": "gray" } } },
+          { "type": "special", "options": { "match": "null", "result": { "text": "—", "color": "gray" } } }
+        ],
+        "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null }, { "color": "yellow", "value": 30 }, { "color": "red", "value": 60 } ] } }, "overrides": [] }
     },
     {
-      "type": "stat",
-      "title": "mump2p Peers",
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 12,
-        "y": 0
-      },
-      "targets": [
-        {
-          "expr": "optimum_gateway_peers_connected",
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      }
+      "type": "stat", "title": "mump2p Peers",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "optimum_gateway_peers_connected", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }],
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["last"] }, "textMode": "auto" },
+      "fieldConfig": { "defaults": { "noValue": "—", "color": { "mode": "thresholds" },
+        "mappings": [
+          { "type": "special", "options": { "match": "nan", "result": { "text": "—", "color": "gray" } } },
+          { "type": "special", "options": { "match": "null", "result": { "text": "—", "color": "gray" } } }
+        ],
+        "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 3 } ] } }, "overrides": [] }
     },
     {
-      "type": "stat",
-      "title": "Uptime",
-      "gridPos": {
-        "h": 6,
-        "w": 6,
-        "x": 18,
-        "y": 0
-      },
-      "targets": [
-        {
-          "expr": "optimum_gateway_uptime_seconds",
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "s"
-        },
-        "overrides": []
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      }
+      "type": "stat", "title": "Uptime",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "optimum_gateway_uptime_seconds", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }],
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["last"] }, "textMode": "auto" },
+      "fieldConfig": { "defaults": { "unit": "s", "noValue": "—", "color": { "mode": "thresholds" },
+        "mappings": [
+          { "type": "special", "options": { "match": "nan", "result": { "text": "—", "color": "gray" } } },
+          { "type": "special", "options": { "match": "null", "result": { "text": "—", "color": "gray" } } }
+        ],
+        "thresholds": { "mode": "absolute", "steps": [ { "color": "green", "value": null } ] } }, "overrides": [] }
     },
     {
-      "type": "timeseries",
-      "title": "Telemetry fetch errors /s",
-      "gridPos": {
-        "h": 8,
-        "w": 24,
-        "x": 0,
-        "y": 6
-      },
-      "targets": [
-        {
-          "expr": "rate(optimum_gateway_api_errors_total[5m])",
-          "refId": "A",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          }
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {},
-        "overrides": []
-      },
-      "datasource": {
-        "type": "prometheus",
-        "uid": "prometheus"
-      }
+      "type": "timeseries", "title": "Telemetry fetch errors /s",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "rate(optimum_gateway_api_errors_total[5m])", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }],
+      "fieldConfig": { "defaults": { "unit": "ops", "color": { "mode": "palette-classic" } }, "overrides": [] }
     }
   ]
 }
