@@ -1,0 +1,13 @@
+{
+  "status": "degraded", "gateway_id": "ag_test_stream_only",
+  "version": "v1.3.4", "uptime_seconds": 123,
+  "checks": {
+    "cl_health": { "status": "skipped" },
+    "cl_peers": { "status": "skipped" },
+    "last_block_age_sec": { "status": "fail", "value": 95 },
+    "mump2p_health": { "status": "ok" },
+    "mump2p_peers": { "status": "ok", "value": 5 },
+    "subscribed_topics": { "status": "skipped" }
+  },
+  "failing": ["last_block_age_sec"]
+}

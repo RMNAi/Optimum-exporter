@@ -1,0 +1,12 @@
+{
+  "status": "healthy", "gateway_id": "ag_test_cl",
+  "version": "v1.3.4", "uptime_seconds": 1639,
+  "checks": {
+    "cl_health": { "status": "ok" },
+    "cl_peers": { "status": "ok", "value": 2 },
+    "last_block_age_sec": { "status": "ok", "value": 1 },
+    "mump2p_health": { "status": "ok" },
+    "mump2p_peers": { "status": "ok", "value": 13 },
+    "subscribed_topics": { "status": "ok", "value": 65 }
+  }
+}

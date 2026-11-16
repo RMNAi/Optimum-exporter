@@ -3,7 +3,7 @@
 
 Observability pack for the Optimum Gateway sidecar (mump2p / RLNC block
 propagation), built entirely on the gateway's OWN telemetry plus two
-off-the-shelf exporters. No custom code to audit or maintain.
+off-the-shelf exporters. No custom code to audit or maintain. (The mock in tests/ is CI-only; nothing custom runs in the monitoring path.)
 
 ## Scope (read this first)
 
@@ -64,6 +64,7 @@ Keep .env out of git. Put Grafana behind TLS; never expose :3000 publicly.
 | `OptimumGatewayRestarted` | uptime reset within 1h | info |
 
 json_exporter accepts 200 and 503, so gauges keep updating while the gateway is degraded. When the gateway is unreachable, the series disappear and panels render "—" (unknown) rather than a stale value. Blackbox distinguishes the two: status 0 = down, 503 = degraded.
+
 Tested against gateway v1.3.4 in stream-only mode. On stream-only nodes /health skips the CL checks, so the CL-peers alert stays silent and the panel shows "—" rather than a false zero.
 
 ## Security
@@ -92,6 +93,7 @@ Pin image digests and canary on one host before fleet rollout. See SECURITY.md.
       promtool check rules /p/alerts.yml
 
 CI runs these on every push/PR.
+CI also runs tests/smoke.sh: json_exporter against committed /health fixtures (stream-only, CL-healthy, stall-503, CL-fail-503), captured from gateway v1.3.4.
 
 ## License
 

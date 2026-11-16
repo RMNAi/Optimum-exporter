@@ -1,0 +1,12 @@
+{
+  "status": "healthy", "gateway_id": "ag_test_stream_only",
+  "version": "v1.3.4", "uptime_seconds": 3018,
+  "checks": {
+    "cl_health": { "status": "skipped" },
+    "cl_peers": { "status": "skipped" },
+    "last_block_age_sec": { "status": "ok", "value": 0 },
+    "mump2p_health": { "status": "ok" },
+    "mump2p_peers": { "status": "ok", "value": 44 },
+    "subscribed_topics": { "status": "skipped" }
+  }
+}
