@@ -3,17 +3,40 @@ groups:
     rules:
       - alert: OptimumGatewayDown
         expr: probe_success{job="optimum-health-blackbox"} == 0
+              and probe_http_status_code{job="optimum-health-blackbox"} == 0
         for: 2m
         labels: { severity: critical }
-        annotations: { summary: "Optimum gateway /health unreachable or degraded" }
+        annotations:
+          summary: "Optimum gateway unreachable"
+          description: "No HTTP response from {{ $labels.instance }} for 2m. Process down, wrong port, or firewall."
+
+      - alert: OptimumGatewayDegraded
+        expr: probe_http_status_code{job="optimum-health-blackbox"} == 503
+        for: 2m
+        labels: { severity: warning }
+        annotations:
+          summary: "Optimum gateway degraded"
+          description: "/health is 503 on {{ $labels.instance }}. See which check fails: curl -s http://localhost:48123/health | jq '.failing'."
+
       - alert: OptimumBlockFlowStalled
         expr: optimum_last_block_age_seconds > 60
         for: 2m
         labels: { severity: warning }
+        annotations:
+          summary: "No block received for over 60s"
+          description: "~5 missed mainnet slots (12s each). Gateway is up but block flow has stalled."
+
       - alert: OptimumMeshPeersLow
         expr: optimum_mump2p_peers < 3
         for: 5m
         labels: { severity: warning }
+        annotations:
+          summary: "Fewer than 3 mump2p mesh peers"
+          description: "Mesh connectivity is thin on {{ $labels.instance }}. Check the mesh port and bootstrap reachability."
+
       - alert: OptimumGatewayRestarted
         expr: resets(optimum_uptime_seconds[1h]) > 0
         labels: { severity: info }
+        annotations:
+          summary: "Gateway restarted in the last hour"
+          description: "Uptime reset detected on {{ $labels.instance }}. Expected after an upgrade; investigate otherwise."

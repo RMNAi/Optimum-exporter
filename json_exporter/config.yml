@@ -1,5 +1,8 @@
 modules:
   optimum_health:
+    # /health returns 503 when degraded but still serves the JSON body.
+    # Accept both, so gauges keep flowing in exactly the states we alert on.
+    valid_status_codes: [200, 503]
     metrics:
       - name: optimum_last_block_age_seconds
         path: '{.checks.last_block_age_sec.value}'

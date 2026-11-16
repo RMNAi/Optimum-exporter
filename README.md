@@ -54,13 +54,15 @@ Keep .env out of git. Put Grafana behind TLS; never expose :3000 publicly.
 
 ## Alerts
 
-  OptimumGatewayDown      probe_success == 0            for 2m   critical
-  OptimumBlockFlowStalled last_block_age_seconds > 60   for 2m   warning
-  OptimumMeshPeersLow     mump2p_peers < 3              for 5m   warning
-  OptimumGatewayRestarted resets(uptime_seconds[1h])>0           info
+| Alert | Condition | Severity |
+| --- | --- | --- |
+| `OptimumGatewayDown` | no HTTP response for 2m | critical |
+| `OptimumGatewayDegraded` | `/health` 503 for 2m | warning |
+| `OptimumBlockFlowStalled` | `last_block_age_seconds > 60` for 2m | warning |
+| `OptimumMeshPeersLow` | `mump2p_peers < 3` for 5m | warning |
+| `OptimumGatewayRestarted` | uptime reset within 1h | info |
 
-When the gateway is down, json_exporter exposes no series, so freshness
-panels render "—" (unknown) rather than a stale or zero value.
+json_exporter accepts 200 and 503, so gauges keep updating while the gateway is degraded. When the gateway is unreachable, the series disappear and panels render "—" (unknown) rather than a stale value. Blackbox distinguishes the two: status 0 = down, 503 = degraded.
 
 ## Security
 
