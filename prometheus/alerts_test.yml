@@ -1,0 +1,104 @@
+# Unit tests for alerts.yml. Run: promtool test rules alerts_test.yml
+# exp_annotations must match alerts.yml wording exactly.
+rule_files:
+  - alerts.yml
+
+evaluation_interval: 1m
+
+tests:
+  # 1. Healthy stream-only gateway: nothing may fire.
+  #    Regression: CLPeersZero fired here when we used the native gauge.
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="optimum-health-blackbox",instance="gw"}'
+        values: '1+0x12'
+      - series: 'probe_http_status_code{job="optimum-health-blackbox",instance="gw"}'
+        values: '200+0x12'
+      - series: 'optimum_last_block_age_seconds{instance="gw"}'
+        values: '5+0x12'
+      - series: 'optimum_mump2p_peers{instance="gw"}'
+        values: '23+0x12'
+      - series: 'optimum_uptime_seconds{instance="gw"}'
+        values: '60+60x12'
+      # optimum_cl_peers deliberately absent (skipped check).
+    alert_rule_test:
+      - { eval_time: 12m, alertname: OptimumGatewayDown,       exp_alerts: [] }
+      - { eval_time: 12m, alertname: OptimumGatewayDegraded,   exp_alerts: [] }
+      - { eval_time: 12m, alertname: OptimumBlockFlowStalled,  exp_alerts: [] }
+      - { eval_time: 12m, alertname: OptimumMeshPeersLow,      exp_alerts: [] }
+      - { eval_time: 12m, alertname: OptimumCLPeersZero,       exp_alerts: [] }
+      - { eval_time: 12m, alertname: OptimumGatewayRestarted,  exp_alerts: [] }
+
+  # 2. CL-attached, zero peers: CL alert + degraded, never "down".
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="optimum-health-blackbox",instance="gw"}'
+        values: '0+0x12'
+      - series: 'probe_http_status_code{job="optimum-health-blackbox",instance="gw"}'
+        values: '503+0x12'
+      - series: 'optimum_cl_peers{instance="gw"}'
+        values: '0+0x12'
+      - series: 'optimum_last_block_age_seconds{instance="gw"}'
+        values: '1+0x12'
+      - series: 'optimum_mump2p_peers{instance="gw"}'
+        values: '5+0x12'
+      - series: 'optimum_uptime_seconds{instance="gw"}'
+        values: '60+60x12'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: OptimumCLPeersZero
+        exp_alerts:
+          - exp_labels: { severity: warning, instance: gw }
+            exp_annotations:
+              summary: "Gateway has no CL peer"
+              description: "Mesh blocks are not reaching your beacon node. Check the beacon node's --peer / direct-peers config. Silent on stream-only gateways: /health skips the check, so the series is absent."
+      - eval_time: 10m
+        alertname: OptimumGatewayDegraded
+        exp_alerts:
+          - exp_labels: { severity: warning, job: optimum-health-blackbox, instance: gw }
+            exp_annotations:
+              summary: "Optimum gateway degraded"
+              description: "/health is 503 on gw. See which check fails: curl -s http://localhost:48123/health | jq '.failing'."
+      - { eval_time: 10m, alertname: OptimumGatewayDown, exp_alerts: [] }
+
+  # 3. Stall while /health is 503: stall alert must still fire.
+  #    Regression: json_exporter once dropped all series on 503.
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="optimum-health-blackbox",instance="gw"}'
+        values: '0+0x12'
+      - series: 'probe_http_status_code{job="optimum-health-blackbox",instance="gw"}'
+        values: '503+0x12'
+      - series: 'optimum_last_block_age_seconds{instance="gw"}'
+        values: '95+0x12'
+      - series: 'optimum_mump2p_peers{instance="gw"}'
+        values: '5+0x12'
+      - series: 'optimum_uptime_seconds{instance="gw"}'
+        values: '60+60x12'
+    alert_rule_test:
+      - eval_time: 10m
+        alertname: OptimumBlockFlowStalled
+        exp_alerts:
+          - exp_labels: { severity: warning, instance: gw }
+            exp_annotations:
+              summary: "No block received for over 60s"
+              description: "~5 missed mainnet slots (12s each). Gateway is up but block flow has stalled."
+      - { eval_time: 10m, alertname: OptimumGatewayDown, exp_alerts: [] }
+      - { eval_time: 10m, alertname: OptimumCLPeersZero, exp_alerts: [] }
+
+  # 4. Unreachable: down, and only down.
+  - interval: 1m
+    input_series:
+      - series: 'probe_success{job="optimum-health-blackbox",instance="gw"}'
+        values: '0+0x6'
+      - series: 'probe_http_status_code{job="optimum-health-blackbox",instance="gw"}'
+        values: '0+0x6'
+    alert_rule_test:
+      - eval_time: 5m
+        alertname: OptimumGatewayDown
+        exp_alerts:
+          - exp_labels: { severity: critical, job: optimum-health-blackbox, instance: gw }
+            exp_annotations:
+              summary: "Optimum gateway unreachable"
+              description: "No HTTP response from gw for 2m. Process down, wrong port, or firewall."
+      - { eval_time: 5m, alertname: OptimumGatewayDegraded, exp_alerts: [] }
