@@ -4,7 +4,6 @@ jobs:
   validate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
       - uses: actions/checkout@v7
       - run: docker compose config -q
       - run: docker run --rm -v "$PWD/prometheus:/p" --entrypoint /bin/promtool prom/prometheus:v3.13.3 check config /p/prometheus.yml
