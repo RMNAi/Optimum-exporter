@@ -12,16 +12,16 @@ Please report privately via GitHub: Security tab -> "Report a vulnerability"
 public issues for security reports. We aim to acknowledge within 7 days.
 
 ## Supported versions
-This is a small prototype. Only the latest `main` is supported; pin a specific
+Only the latest `main` is supported; pin a specific
 commit (or image digest) for any real deployment and review the code yourself.
 
 ## Deployment guidance (the real risks)
 - The gateway telemetry port is UNAUTHENTICATED. Keep it bound to 127.0.0.1
   (`telemetry_addr`) and never expose it publicly.
 - Bind exporter metrics to loopback or your monitoring VLAN, not 0.0.0.0.
-- Run the container as non-root (the Dockerfile does) and pin base-image digests.
+- Images are upstream stock, pinned by tag in compose. For fleet rollouts, verify digests and canary on one host.
 - Do NOT run the demo compose (admin/admin Grafana) on a validator host.
-- Alert on `optimum_gateway_up` / `probe_success`, not on a stale health gauge.
+- Alert on `probe_success` / `probe_http_status_code` (down vs degraded), not on a stale health gauge.
 
 ## Out of scope
 Vulnerabilities in the Optimum Gateway itself belong to Optimum, not this repo.

@@ -9,7 +9,7 @@ MOCK_PID=$!
 docker rm -f og-smoke-json >/dev/null 2>&1 || true
 docker run -d --name og-smoke-json --network host \
   -v "$PWD/json_exporter/config.yml:/etc/json/config.yml:ro" \
-  prometheuscommunity/json-exporter:v0.6.0 \
+  prometheuscommunity/json-exporter:v0.8.0 \
   --config.file=/etc/json/config.yml >/dev/null
 cleanup() { docker rm -f og-smoke-json >/dev/null 2>&1 || true; kill "$MOCK_PID" 2>/dev/null || true; }
 trap cleanup EXIT

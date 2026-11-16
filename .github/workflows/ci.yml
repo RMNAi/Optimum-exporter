@@ -5,8 +5,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker compose config -q
-      - run: docker run --rm -v "$PWD/prometheus:/p" --entrypoint /bin/promtool prom/prometheus:v2.53.0 check config /p/prometheus.yml
-      - run: docker run --rm -v "$PWD/prometheus:/p" --entrypoint /bin/promtool prom/prometheus:v2.53.0 check rules /p/alerts.yml
-      - run: docker run --rm -v "$PWD/prometheus:/p" --entrypoint /bin/promtool prom/prometheus:v2.53.0 test rules /p/alerts_test.yml
+      - run: docker run --rm -v "$PWD/prometheus:/p" --entrypoint /bin/promtool prom/prometheus:v3.13.3 check config /p/prometheus.yml
+      - run: docker run --rm -v "$PWD/prometheus:/p" --entrypoint /bin/promtool prom/prometheus:v3.13.3 check rules /p/alerts.yml
+      - run: docker run --rm -v "$PWD/prometheus:/p" --entrypoint /bin/promtool prom/prometheus:v3.13.3 test rules /p/alerts_test.yml
       - run: bash tests/smoke.sh
