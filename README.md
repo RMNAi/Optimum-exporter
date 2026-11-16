@@ -60,9 +60,11 @@ Keep .env out of git. Put Grafana behind TLS; never expose :3000 publicly.
 | `OptimumGatewayDegraded` | `/health` 503 for 2m | warning |
 | `OptimumBlockFlowStalled` | `last_block_age_seconds > 60` for 2m | warning |
 | `OptimumMeshPeersLow` | `mump2p_peers < 3` for 5m | warning |
+| `OptimumCLPeersZero` | `optimum_cl_peers < 1` for 5m | warning |
 | `OptimumGatewayRestarted` | uptime reset within 1h | info |
 
 json_exporter accepts 200 and 503, so gauges keep updating while the gateway is degraded. When the gateway is unreachable, the series disappear and panels render "—" (unknown) rather than a stale value. Blackbox distinguishes the two: status 0 = down, 503 = degraded.
+Tested against gateway v1.3.4 in stream-only mode. On stream-only nodes /health skips the CL checks, so the CL-peers alert stays silent and the panel shows "—" rather than a false zero.
 
 ## Security
 

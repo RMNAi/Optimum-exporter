@@ -13,3 +13,6 @@ modules:
       - name: optimum_uptime_seconds
         path: '{.uptime_seconds}'
         help: Gateway process uptime seconds (from /health).
+      - name: optimum_cl_peers
+        path: '{.checks.cl_peers.value}'
+        help: CL peers (from /health). Absent on stream-only gateways (check skipped).

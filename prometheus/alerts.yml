@@ -40,3 +40,11 @@ groups:
         annotations:
           summary: "Gateway restarted in the last hour"
           description: "Uptime reset detected on {{ $labels.instance }}. Expected after an upgrade; investigate otherwise."
+
+      - alert: OptimumCLPeersZero
+        expr: optimum_cl_peers < 1
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Gateway has no CL peer"
+          description: "Mesh blocks are not reaching your beacon node. Check the beacon node's --peer / direct-peers config. Silent on stream-only gateways: /health skips the check, so the series is absent."          

@@ -45,10 +45,19 @@
     },
     {
       "type": "timeseries", "title": "Health probe duration",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 6 },
+      "gridPos": { "h": 8, "w": 18, "x": 6, "y": 6 },
       "datasource": { "type": "prometheus", "uid": "prometheus" },
       "targets": [{ "expr": "probe_duration_seconds{job=\"optimum-health-blackbox\"}", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }],
       "fieldConfig": { "defaults": { "unit": "s", "color": { "mode": "palette-classic" } }, "overrides": [] }
-    }
+    },
+    {
+      "type": "stat", "title": "CL Peers",
+      "gridPos": { "h": 8, "w": 6, "x": 0, "y": 6 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "optimum_cl_peers", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }],
+      "options": { "colorMode": "value", "graphMode": "area", "reduceOptions": { "calcs": ["last"] }, "textMode": "auto" },
+      "fieldConfig": { "defaults": { "noValue": "—", "color": { "mode": "thresholds" },
+      "thresholds": { "mode": "absolute", "steps": [ { "color": "red", "value": null }, { "color": "green", "value": 1 } ] } }, "overrides": [] }
+    }    
   ]
 }
