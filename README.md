@@ -87,10 +87,10 @@ Pin image digests and canary on one host before fleet rollout. See SECURITY.md.
 ## Validation
 
     docker compose config -q
-    docker run --rm -v "$PWD/prometheus:/p" prom/prometheus:v2.53.0 \
-      promtool check config /p/prometheus.yml
-    docker run --rm -v "$PWD/prometheus:/p" prom/prometheus:v2.53.0 \
-      promtool check rules /p/alerts.yml
+    docker run --rm -v "$PWD/prometheus:/p" --entrypoint /bin/promtool prom/prometheus:v3.13.3 \
+      check config /p/prometheus.yml
+    docker run --rm -v "$PWD/prometheus:/p" --entrypoint /bin/promtool prom/prometheus:v3.13.3 \
+      check rules /p/alerts.yml    
 
 CI runs these on every push/PR.
 CI also runs tests/smoke.sh: json_exporter against committed /health fixtures (stream-only, CL-healthy, stall-503, CL-fail-503), captured from gateway v1.3.4.
