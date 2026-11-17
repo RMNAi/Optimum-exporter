@@ -14,6 +14,12 @@ gauge, not a latency measurement. For per-validator performance / ROI
 (attestation accuracy, block inclusion, acceleration recommendations) use
 the Optimum Console. This pack complements the Console; it does not replace it.
 
+## Prerequisites
+
+- Docker and Docker Compose installed
+- A running Optimum Gateway with telemetry enabled on port 48123 (the default). If you enrolled via the Optimum Console, telemetry is already enabled.
+- The gateway's telemetry port (`48123`) must be reachable from this monitoring stack.
+
 ## Why native
 
 The gateway already exposes:
@@ -51,6 +57,12 @@ against your Prometheus:
     docker compose -f docker-compose.grafana.yml up -d
 
 Keep .env out of git. Put Grafana behind TLS; never expose :3000 publicly.
+
+## Remote Gateways
+
+By default, this stack monitors a gateway running on the same machine (`host.docker.internal:48123`). 
+
+If your gateway runs on a different server, edit `prometheus/prometheus.yml` and replace `host.docker.internal` with your gateway's IP address or hostname in all three scrape jobs (the lines containing `targets:`).
 
 ## Alerts
 
